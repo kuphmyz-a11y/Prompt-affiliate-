@@ -1,16 +1,16 @@
-import { Router, Request, Response } from 'express';
-import { query, get, run } from '../db/index.js';
+import { Router } from 'express';
+import { query, run, get } from '../db/index.js';
 import logger from '../lib/logger.js';
 
 const router = Router();
 
 // GET /api/domains
-router.get('/', (req: Request, res: Response) => {
+router.get('/', (req, res) => {
   try {
-    const { status, market, segment, limit = 50, offset = 0 } = req.query;
+    const { status, market, segment, limit = '50', offset = '0' } = req.query;
     let sql = 'SELECT * FROM domains WHERE 1=1';
-    const params: any[] = [];
-    
+    const params: unknown[] = [];
+
     if (status) {
       sql += ' AND status = ?';
       params.push(status);
@@ -23,68 +23,75 @@ router.get('/', (req: Request, res: Response) => {
       sql += ' AND segment = ?';
       params.push(segment);
     }
-    
-    sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+
+    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
-    
+
     const domains = query(sql, params);
     res.json(domains);
   } catch (err) {
-    logger.error('Error getting domains:', err);
+    logger.error('domains list error', err);
     res.status(500).json({ error: String(err) });
   }
 });
 
 // POST /api/domains
-router.post('/', (req: Request, res: Response) => {
+router.post('/', (req, res) => {
   try {
-    const { name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status = 'idea' } = req.body;
+    const { name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status } = req.body;
     const result = run(
-      'INSERT INTO domains (name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status]
+      `INSERT INTO domains (name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status || 'idea']
     );
     res.json({ id: result.lastInsertRowid });
   } catch (err) {
-    logger.error('Error creating domain:', err);
+    logger.error('domain create error', err);
     res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /api/domains/:id
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', (req, res) => {
   try {
     const domain = get('SELECT * FROM domains WHERE id = ?', [req.params.id]);
-    if (!domain) return res.status(404).json({ error: 'Not found' });
-    res.json(domain);
+    res.json(domain || {});
   } catch (err) {
-    logger.error('Error getting domain:', err);
+    logger.error('domain get error', err);
     res.status(500).json({ error: String(err) });
   }
 });
 
 // PATCH /api/domains/:id
-router.patch('/:id', (req: Request, res: Response) => {
+router.patch('/:id', (req, res) => {
   try {
-    const updates = req.body;
-    const fields = Object.keys(updates)
-      .map((k) => `${k} = ?`)
-      .join(', ');
-    const values = Object.values(updates);
-    run(`UPDATE domains SET ${fields}, updated_at = datetime('now') WHERE id = ?`, [...values, req.params.id]);
+    const updates: string[] = [];
+    const params: unknown[] = [];
+
+    for (const [key, value] of Object.entries(req.body)) {
+      if (key !== 'id') {
+        updates.push(`${key} = ?`);
+        params.push(value);
+      }
+    }
+
+    params.push(req.params.id);
+    updates.push('updated_at = datetime(\'now\')');
+
+    run(`UPDATE domains SET ${updates.join(', ')} WHERE id = ?`, params);
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error updating domain:', err);
+    logger.error('domain update error', err);
     res.status(500).json({ error: String(err) });
   }
 });
 
 // DELETE /api/domains/:id
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', (req, res) => {
   try {
     run('DELETE FROM domains WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error deleting domain:', err);
+    logger.error('domain delete error', err);
     res.status(500).json({ error: String(err) });
   }
 });

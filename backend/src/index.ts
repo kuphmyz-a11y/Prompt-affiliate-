@@ -1,15 +1,10 @@
 import 'dotenv/config';
 import app from './app.js';
-import logger from './lib/logger.js';
 import { migrate } from '../scripts/migrate.js';
+import logger from './lib/logger.js';
 
-try {
-  migrate();
-  logger.info('Database migrated successfully');
-} catch (err) {
-  logger.error('Migration failed:', err);
-  process.exit(1);
-}
+// Auto-migrate on start
+migrate();
 
 const PORT = parseInt(process.env.PORT || '3000');
 app.listen(PORT, () => {

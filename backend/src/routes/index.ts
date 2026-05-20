@@ -12,5 +12,6 @@ router.use('/scan', scanRouter);
 router.use('/integrations', integrationsRouter);
 router.use('/agent', pipelineRouter);
 router.use('/wordpress', wordpressRouter);
+router.use('/domains', require('./domains.js').default);
 
 export default router;

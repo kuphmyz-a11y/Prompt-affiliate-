@@ -3,32 +3,34 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.resolve(__dirname, '../../../db/app.sqlite');
+const dbPath = path.join(__dirname, '../../db/app.sqlite');
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+let db: Database.Database | null = null;
 
-interface QueryParams {
-  [key: string]: any;
+export function getDB() {
+  if (!db) {
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+  }
+  return db;
 }
 
-export function query(sql: string, params: QueryParams = {}): any[] {
-  const stmt = db.prepare(sql);
-  return stmt.all(params);
+export function query<T = unknown>(sql: string, params?: unknown[]): T[] {
+  const stmt = getDB().prepare(sql);
+  return stmt.all(...(params || [])) as T[];
 }
 
-export function run(sql: string, params: QueryParams = {}): any {
-  const stmt = db.prepare(sql);
-  return stmt.run(params);
+export function run(sql: string, params?: unknown[]): Database.RunResult {
+  const stmt = getDB().prepare(sql);
+  return stmt.run(...(params || []));
 }
 
-export function get(sql: string, params: QueryParams = {}): any {
-  const stmt = db.prepare(sql);
-  return stmt.get(params);
+export function get<T = unknown>(sql: string, params?: unknown[]): T | undefined {
+  const stmt = getDB().prepare(sql);
+  return stmt.get(...(params || [])) as T | undefined;
 }
 
-export function exec(sql: string): void {
-  db.exec(sql);
+export function exec(sql: string) {
+  return getDB().exec(sql);
 }
-
-export default db;
