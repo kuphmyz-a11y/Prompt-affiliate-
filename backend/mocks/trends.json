@@ -1,0 +1,52 @@
+{
+  "markets": [
+    {
+      "iso": "PL",
+      "name": "Poland",
+      "name_native": "Polska",
+      "language": "pl",
+      "internet_penetration": 85,
+      "bureaucracy_score": 2,
+      "competition_score": 35,
+      "affiliate_freedom_score": 90,
+      "epc_potential_score": 75,
+      "total_score": 82,
+      "best_segments": ["loans", "insurance", "dating"],
+      "notes": "Large market, low regulation",
+      "recommended": true
+    },
+    {
+      "iso": "ES",
+      "name": "Spain",
+      "name_native": "Espana",
+      "language": "es",
+      "internet_penetration": 92,
+      "bureaucracy_score": 3,
+      "competition_score": 45,
+      "affiliate_freedom_score": 85,
+      "epc_potential_score": 78,
+      "total_score": 79,
+      "best_segments": ["travel", "gambling", "ecommerce"],
+      "notes": "High EPC potential",
+      "recommended": true
+    },
+    {
+      "iso": "CZ",
+      "name": "Czech Republic",
+      "name_native": "Ceska Republika",
+      "language": "cs",
+      "internet_penetration": 88,
+      "bureaucracy_score": 2,
+      "competition_score": 40,
+      "affiliate_freedom_score": 88,
+      "epc_potential_score": 72,
+      "total_score": 78,
+      "best_segments": ["insurance", "loans", "casino"],
+      "notes": "Growing market",
+      "recommended": true
+    }
+  ],
+  "scan_date": "2025-01-01",
+  "total_scanned": 50,
+  "recommended_count": 15
+}

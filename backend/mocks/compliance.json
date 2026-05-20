@@ -1,0 +1,23 @@
+{
+  "seo": {
+    "title": "Pujcky Online - Rychle a Levne | PujckyCS",
+    "meta_description": "Porovna nejlepsi pujcky online v Ceske republice. Chvilkove, ratalne pujcky, bez BIK.",
+    "og_title": "Porovna Pujcky Online 2025",
+    "og_description": "Najdi nejlevnejsi pujcku online. Overi RPSN a provize.",
+    "h1": "Nejlepsi Pujcky Online v Ceske Republice",
+    "keywords": ["pujcky online", "chvilkove pujcky", "pujcky bez BIK", "rychla pujcka", "RPSN"]
+  },
+  "legal": {
+    "gdpr_required": true,
+    "cookie_consent": true,
+    "affiliate_disclosure": true,
+    "privacy_policy_required": true,
+    "country_specific_notes": "EU/CZ: Povinne politika soukromi dle GDPR. Odkazovany odkaz na kazde strance. Soulad s ceskou zakonem o ochrane osobnich udaju."
+  },
+  "affiliate": {
+    "recommended_networks": ["Awin", "CJ", "Impact"],
+    "programs": ["Vivus", "Ferratum", "Credy", "iCredit", "Emperia"],
+    "content_strategy": "Porovnani, kalkulatory pujcek, clanky s radami",
+    "monetization_notes": "EPC 20-50 USD, CPA 10-30 USD za lead"
+  }
+}
