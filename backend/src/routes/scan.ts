@@ -1,184 +1,567 @@
-import { Router, Request, Response } from 'express';
-import { query, run, get } from '../db/index.js';
+import { Router } from 'express';
+import { OpenAI } from 'openai';
 import logger from '../lib/logger.js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { query, run, get } from '../db/index.js';
+import trendsData from '../mocks/trends.json' assert { type: 'json' };
+import domainsData from '../mocks/domains.json' assert { type: 'json' };
+import contentData from '../mocks/content.json' assert { type: 'json' };
+import complianceData from '../mocks/compliance.json' assert { type: 'json' };
 
 const router = Router();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const mockTrends = JSON.parse(readFileSync(path.join(__dirname, '../../mocks/trends.json'), 'utf-8'));
-const mockDomains = JSON.parse(readFileSync(path.join(__dirname, '../../mocks/domains.json'), 'utf-8'));
-const mockContent = JSON.parse(readFileSync(path.join(__dirname, '../../mocks/content.json'), 'utf-8'));
-const mockCompliance = JSON.parse(readFileSync(path.join(__dirname, '../../mocks/compliance.json'), 'utf-8'));
-
-function startSSE(res: Response) {
+function startSSE(res: any) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
 }
 
-function sendEvent(res: Response, data: unknown) {
+function sendEvent(res: any, data: any) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-// POST /scan/markets
-router.post('/markets', (req: Request, res: Response) => {
+async function callWithFallback<T>(
+  serviceName: string,
+  apiFn: () => Promise<T>,
+  mockFn: () => T
+): Promise<T> {
+  const mockMode = process.env.MOCK_MODE === 'true';
+  if (mockMode) {
+    logger.warn(`[API] MOCK_MODE: ${serviceName}`);
+    return mockFn();
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const result = await apiFn();
+    clearTimeout(timeout);
+    return result;
+  } catch (err) {
+    logger.warn(`[API] Fallback to mock: ${serviceName}`, err);
+    return mockFn();
+  }
+}
+
+// POST /api/scan/markets
+router.post('/markets', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Analyzing markets...' });
-  }, 100);
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'done', output: mockTrends });
+
+  try {
+    const result = await callWithFallback(
+      'scan-markets',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an affiliate market analyst. Respond only with valid JSON.',
+            },
+            {
+              role: 'user',
+              content: 'Analyze top markets for affiliate marketing.',
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 6000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => trendsData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/markets error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// POST /scan/market-trends
-router.post('/market-trends', (req: Request, res: Response) => {
+// POST /api/scan/market-trends
+router.post('/market-trends', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Scanning trends...' });
-  }, 100);
-  
-  setTimeout(() => {
-    const output = {
-      market: req.body.iso,
-      language: req.body.language,
-      trends: [
-        { id: 1, name: 'loans', name_local: 'pożyczki', category: 'finance', search_est: 50000, epc_usd: 25, commission_pct: 5, trend_score: 85, competition: 45, direction: 'up', why: 'Growing demand' },
-        { id: 2, name: 'insurance', name_local: 'ubezpieczenia', category: 'finance', search_est: 30000, epc_usd: 35, commission_pct: 8, trend_score: 78, competition: 38, direction: 'stable', why: 'Consistent demand' },
-      ],
-    };
-    sendEvent(res, { type: 'done', output });
+
+  try {
+    const result = await callWithFallback(
+      'market-trends',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a trend analyst. Return only valid JSON.',
+            },
+            {
+              role: 'user',
+              content: `Analyze trends for market: ${req.body.iso}`,
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 10000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => trendsData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/market-trends error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// POST /scan/trend-deep
-router.post('/trend-deep', (req: Request, res: Response) => {
+// POST /api/scan/trend-deep
+router.post('/trend-deep', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Deep analyzing trend...' });
-  }, 100);
-  
-  setTimeout(() => {
-    const output = {
-      trend: req.body.trend_name,
-      trend_local: req.body.trend_name_local,
-      market: req.body.market_iso,
-      language: req.body.language,
-      search_volume_est: 50000,
-      competition_score: 45,
-      epc_usd: 25,
-      commission_pct: 5,
-      affiliate_programs: [
-        { name: 'Vivus', url: 'https://vivus.pl', commission_pct: 5, epc_usd: 20 },
-        { name: 'Ferratum', url: 'https://ferratum.pl', commission_pct: 6, epc_usd: 25 },
-      ],
-      content_angles: ['Best loans comparison', 'Fast loans without paperwork', 'Loans for bad credit'],
-      domain_keywords: ['pożyczki', 'szybka pożyczka', 'chwilówka'],
-      why_now: 'High seasonal demand',
-      risk_level: 'low',
-    };
-    sendEvent(res, { type: 'done', output });
+
+  try {
+    const result = await callWithFallback(
+      'trend-deep',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a deep trend analyzer. Return only valid JSON.',
+            },
+            {
+              role: 'user',
+              content: `Deep analysis for trend: ${req.body.trend_name}`,
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 8000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => trendsData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/trend-deep error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// POST /scan/domains
-router.post('/domains', (req: Request, res: Response) => {
+// POST /api/scan/domains
+router.post('/domains', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Generating domains...' });
-  }, 100);
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'done', output: mockDomains });
+
+  try {
+    const result = await callWithFallback(
+      'scan-domains',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a domain suggestion expert. Return only valid JSON.',
+            },
+            {
+              role: 'user',
+              content: 'Suggest domain names for affiliate sites.',
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 6000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => domainsData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/domains error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// POST /scan/domain-setup
-router.post('/domain-setup', (req: Request, res: Response) => {
+// POST /api/scan/domain-setup
+router.post('/domain-setup', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Setting up domain...' });
-  }, 100);
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'done', output: mockCompliance });
+
+  try {
+    const result = await callWithFallback(
+      'domain-setup',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a domain setup expert. Return only valid JSON with seo, legal, and affiliate fields.',
+            },
+            {
+              role: 'user',
+              content: `Setup domain: ${req.body.domain}`,
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 10000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => complianceData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/domain-setup error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// POST /scan/content-generate
-router.post('/content-generate', (req: Request, res: Response) => {
+// POST /api/scan/content-generate
+router.post('/content-generate', async (req, res) => {
   startSSE(res);
   sendEvent(res, { type: 'start' });
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'chunk', content: 'Generating content...' });
-  }, 100);
-  
-  setTimeout(() => {
-    sendEvent(res, { type: 'done', output: mockContent });
+
+  try {
+    const result = await callWithFallback(
+      'content-generate',
+      async () => {
+        let fullContent = '';
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a content generator. Return only valid JSON.',
+            },
+            {
+              role: 'user',
+              content: `Generate content for: ${req.body.domain}`,
+            },
+          ],
+          stream: true,
+          response_format: { type: 'json_object' },
+          max_tokens: 12000,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullContent += content;
+            sendEvent(res, { type: 'chunk', content });
+          }
+        }
+
+        try {
+          return JSON.parse(fullContent);
+        } catch {
+          const start = fullContent.indexOf('{');
+          const end = fullContent.lastIndexOf('}');
+          return JSON.parse(fullContent.slice(start, end + 1));
+        }
+      },
+      () => contentData
+    );
+
+    sendEvent(res, { type: 'done', output: result });
     res.end();
-  }, 500);
+  } catch (err) {
+    logger.error('scan/content-generate error:', err);
+    sendEvent(res, { type: 'error', message: String(err) });
+    res.end();
+  }
 });
 
-// GET /scan/sessions
-router.get('/sessions', (req: Request, res: Response) => {
-  const sessions = query('SELECT * FROM scan_sessions ORDER BY created_at DESC');
-  res.json(sessions);
+// GET /api/scan/sessions
+router.get('/sessions', (req, res) => {
+  try {
+    const sessions = query(
+      'SELECT * FROM scan_sessions ORDER BY created_at DESC LIMIT 100'
+    );
+    res.json(sessions);
+  } catch (err) {
+    logger.error('GET /sessions error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
-// POST /scan/sessions
-router.post('/sessions', (req: Request, res: Response) => {
-  const { name, status = 'running', blocked_countries = [], preferred_tlds = [], max_price_usd = 10 } = req.body;
-  const result = run(
-    'INSERT INTO scan_sessions (name, status, blocked_countries, preferred_tlds, max_price_usd) VALUES (?, ?, ?, ?, ?)',
-    [name, status, JSON.stringify(blocked_countries), JSON.stringify(preferred_tlds), max_price_usd]
-  );
-  res.json({ id: result.lastInsertRowid });
+// POST /api/scan/sessions
+router.post('/sessions', (req, res) => {
+  try {
+    const { name, status = 'running', blocked_countries = [], preferred_tlds = [], max_price_usd = 10 } = req.body;
+    const result = run(
+      'INSERT INTO scan_sessions (name, status, blocked_countries, preferred_tlds, max_price_usd) VALUES (?, ?, ?, ?, ?)',
+      {
+        ':name': name,
+        ':status': status,
+        ':blocked_countries': JSON.stringify(blocked_countries),
+        ':preferred_tlds': JSON.stringify(preferred_tlds),
+        ':max_price_usd': max_price_usd,
+      }
+    );
+    res.json({ id: result.lastInsertRowid });
+  } catch (err) {
+    logger.error('POST /sessions error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
-// GET /scan/sessions/:id
-router.get('/sessions/:id', (req: Request, res: Response) => {
-  const session = get('SELECT * FROM scan_sessions WHERE id = ?', [req.params.id]);
-  if (!session) return res.status(404).json({ error: 'Not found' });
-  res.json(session);
+// GET /api/scan/sessions/:id
+router.get('/sessions/:id', (req, res) => {
+  try {
+    const session = get('SELECT * FROM scan_sessions WHERE id = ?', { ':id': req.params.id });
+    if (!session) return res.status(404).json({ error: 'Not found' });
+    res.json(session);
+  } catch (err) {
+    logger.error('GET /sessions/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
-// PATCH /scan/sessions/:id
-router.patch('/sessions/:id', (req: Request, res: Response) => {
-  const updates = req.body;
-  const setClauses = Object.keys(updates).map((key) => `${key} = ?`);
-  const values = Object.values(updates);
-  values.push(req.params.id);
-  
-  run(`UPDATE scan_sessions SET ${setClauses.join(', ')}, updated_at = datetime('now') WHERE id = ?`, values);
-  res.json({ success: true });
+// PATCH /api/scan/sessions/:id
+router.patch('/sessions/:id', (req, res) => {
+  try {
+    const updates = Object.entries(req.body)
+      .map(([k, v]) => `${k} = ?`)
+      .join(', ');
+    const values = Object.values(req.body);
+
+    run(
+      `UPDATE scan_sessions SET ${updates}, updated_at = datetime('now') WHERE id = ?`,
+      { ...req.body, ':id': req.params.id }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('PATCH /sessions/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
-// DELETE /scan/sessions/:id
-router.delete('/sessions/:id', (req: Request, res: Response) => {
-  run('DELETE FROM scan_sessions WHERE id = ?', [req.params.id]);
-  res.json({ success: true });
+// DELETE /api/scan/sessions/:id
+router.delete('/sessions/:id', (req, res) => {
+  try {
+    run('DELETE FROM scan_sessions WHERE id = ?', { ':id': req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('DELETE /sessions/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/domains
+router.get('/../../domains', (req, res) => {
+  try {
+    const { status, market, segment, limit = 50, offset = 0 } = req.query;
+    let sql = 'SELECT * FROM domains WHERE 1=1';
+    const params: any = {};
+
+    if (status) {
+      sql += ' AND status = :status';
+      params[':status'] = status;
+    }
+    if (market) {
+      sql += ' AND market = :market';
+      params[':market'] = market;
+    }
+    if (segment) {
+      sql += ' AND segment = :segment';
+      params[':segment'] = segment;
+    }
+
+    sql += ' ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
+    params[':limit'] = limit;
+    params[':offset'] = offset;
+
+    const domains = query(sql, params);
+    res.json(domains);
+  } catch (err) {
+    logger.error('GET /domains error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// POST /api/domains
+router.post('/../../domains', (req, res) => {
+  try {
+    const {
+      name,
+      tld,
+      market,
+      language,
+      segment,
+      keyword_local,
+      score,
+      price_usd,
+      cpc_usd,
+      epc_usd,
+      buy_url,
+      status = 'idea',
+    } = req.body;
+
+    const result = run(
+      'INSERT INTO domains (name, tld, market, language, segment, keyword_local, score, price_usd, cpc_usd, epc_usd, buy_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      {
+        ':name': name,
+        ':tld': tld,
+        ':market': market,
+        ':language': language,
+        ':segment': segment,
+        ':keyword_local': keyword_local,
+        ':score': score,
+        ':price_usd': price_usd,
+        ':cpc_usd': cpc_usd,
+        ':epc_usd': epc_usd,
+        ':buy_url': buy_url,
+        ':status': status,
+      }
+    );
+    res.json({ id: result.lastInsertRowid });
+  } catch (err) {
+    logger.error('POST /domains error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/domains/:id
+router.get('/../../domains/:id', (req, res) => {
+  try {
+    const domain = get('SELECT * FROM domains WHERE id = ?', { ':id': req.params.id });
+    if (!domain) return res.status(404).json({ error: 'Not found' });
+    res.json(domain);
+  } catch (err) {
+    logger.error('GET /domains/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// PATCH /api/domains/:id
+router.patch('/../../domains/:id', (req, res) => {
+  try {
+    const updates = Object.entries(req.body)
+      .map(([k]) => `${k} = ?`)
+      .join(', ');
+
+    run(
+      `UPDATE domains SET ${updates}, updated_at = datetime('now') WHERE id = ?`,
+      { ...req.body, ':id': req.params.id }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('PATCH /domains/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// DELETE /api/domains/:id
+router.delete('/../../domains/:id', (req, res) => {
+  try {
+    run('DELETE FROM domains WHERE id = ?', { ':id': req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('DELETE /domains/:id error:', err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 export default router;

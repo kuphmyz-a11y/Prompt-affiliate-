@@ -1,28 +1,28 @@
 {
-  "h1": "Najlepsze Pożyczki Online 2025 – Porównaj i Wybierz",
-  "intro": "Szukasz szybkiej pożyczki online? Porównaj oferty najlepszych pożyczkodawców w Polsce.",
+  "h1": "Nejlepší Půjčky Online 2025 – Porovnej a Vyberi",
+  "intro": "Hledáš rychlou půjčku online? Porovnej nabídky nejlepších půjčovatelů v Česku.",
   "sections": [
     {
-      "heading": "Jak wybrać najlepszą pożyczkę?",
-      "body": "Przy wyborze pożyczki zwróć uwagę na RRSO, prowizję i czas spłaty..."
+      "heading": "Jak vybrat nejlepší půjčku?",
+      "body": "Při výběru půjčky věnuj pozornost RPSN, provizi a času splácení..."
     },
     {
-      "heading": "TOP 5 Pożyczek Online",
-      "body": "1. Vivus – pierwsza pożyczka za darmo. 2. Ferratum..."
+      "heading": "TOP 5 Půjček Online",
+      "body": "1. Vivus – první půjčka zdarma. 2. Ferratum..."
     }
   ],
   "faq": [
     {
-      "q": "Jak szybko dostanę pieniądze?",
-      "a": "Większość pożyczkodawców przelewa środki w ciągu 15 minut."
+      "q": "Jak rychle dostanu peníze?",
+      "a": "Většina půjčovatelů převádí prostředky do 15 minut."
     },
     {
-      "q": "Czy potrzebuję zaświadczenia o dochodach?",
-      "a": "Nie zawsze – wiele firm oferuje pożyczki bez zaświadczeń."
+      "q": "Potřebuji doklad o příjmu?",
+      "a": "Ne vždy – mnoho firem nabízí půjčky bez dokladu."
     }
   ],
-  "cta": "Porównaj teraz i wybierz najlepszą ofertę dla siebie!",
-  "affiliate_disclosure": "Strona zawiera linki afiliacyjne. Możemy otrzymać prowizję za polecenie.",
+  "cta": "Porovnej nyní a vyber nejlepší nabídku pro sebe!",
+  "affiliate_disclosure": "Stránka obsahuje afiliační odkazy. Můžeme obdržet provizi za doporučení.",
   "word_count": 850,
-  "language": "pl"
+  "language": "cs"
 }

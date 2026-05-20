@@ -1,21 +1,21 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 
 const router = Router();
 
-router.get('/healthz', (req: Request, res: Response) => {
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  const hasWordPress = !!process.env.WORDPRESS_URL;
-  const hasNamecheap = !!process.env.NAMECHEAP_API_KEY;
-  const hasMake = !!process.env.MAKE_WEBHOOK_URL;
+router.get('/', (req, res) => {
+  const openaiKey = !!process.env.OPENAI_API_KEY;
+  const wordpressUrl = !!process.env.WORDPRESS_URL;
+  const namecheapKey = !!process.env.NAMECHEAP_API_KEY;
+  const makeUrl = !!process.env.MAKE_WEBHOOK_URL;
 
   res.json({
     status: 'ok',
-    mode: hasOpenAI ? 'online' : 'offline',
+    mode: openaiKey ? 'online' : 'offline',
     apis: {
-      openai: hasOpenAI,
-      wordpress: hasWordPress,
-      namecheap: hasNamecheap,
-      make: hasMake,
+      openai: openaiKey,
+      wordpress: wordpressUrl,
+      namecheap: namecheapKey,
+      make: makeUrl,
     },
   });
 });

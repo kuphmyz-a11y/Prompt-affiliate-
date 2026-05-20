@@ -7,7 +7,7 @@ import wordpressRouter from './wordpress.js';
 
 const router = Router();
 
-router.use(healthRouter);
+router.use('/healthz', healthRouter);
 router.use('/scan', scanRouter);
 router.use('/integrations', integrationsRouter);
 router.use('/agent', pipelineRouter);

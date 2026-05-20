@@ -8,6 +8,7 @@ const logger = pino({
     target: 'pino-pretty',
     options: {
       colorize: true,
+      singleLine: false,
     },
   },
 });

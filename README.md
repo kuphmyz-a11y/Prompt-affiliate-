@@ -37,30 +37,127 @@ WORDPRESS_USER=admin            # Optional
 WORDPRESS_APP_PASSWORD=xxx      # Optional (WP Application Password)
 ```
 
+## Technology Stack
+
+- **Backend**: Node.js 20+, TypeScript, Express 5, better-sqlite3, OpenAI SDK v4
+- **Frontend**: React 19, TypeScript, Vite 5, Tailwind CSS v4, shadcn/ui, wouter
+- **Database**: SQLite (better-sqlite3)
+- **Ports**: Backend 3000, Frontend 5173
+
+## Architecture
+
+- Fully local development – no cloud dependencies
+- Hybrid mode with automatic fallback to mock data
+- Server-Sent Events (SSE) for real-time streaming
+- JSON field serialization in SQLite
+- Single-user application (no authentication)
+- Czech UI language
+- Dark theme with purple accents
+
+## Features
+
+- **Deep Scan**: 4-phase wizard for market analysis
+  - Phase 1: Market selection
+  - Phase 2: Trend discovery
+  - Phase 3: Deep trend analysis
+  - Phase 4: Domain suggestions
+
+- **Domain Portfolio**: CRUD operations for tracked domains
+- **Content Generation**: AI-powered site setup and content creation
+- **WordPress Integration**: One-click publishing
+- **Pipeline Agent**: Automated affiliate factory workflow
+- **Configuration**: Model selection, geo filters, trend weights
+- **Integrations**: 15 pre-configured services (WordPress, Namecheap, etc.)
+
 ## Project Structure
 
 ```
 affiliate-engine/
-├── backend/              # Express 5 API server (TypeScript)
+├── backend/
 │   ├── src/
-│   ├── db/
+│   │   ├── app.ts
+│   │   ├── index.ts
+│   │   ├── lib/logger.ts
+│   │   ├── db/index.ts
+│   │   └── routes/
+│   │       ├── index.ts
+│   │       ├── health.ts
+│   │       ├── scan.ts
+│   │       ├── integrations.ts
+│   │       ├── pipeline.ts
+│   │       └── wordpress.ts
 │   ├── scripts/
+│   │   ├── migrate.ts
+│   │   └── seed.ts
 │   ├── mocks/
-│   ├── .env.example
+│   │   ├── trends.json
+│   │   ├── domains.json
+│   │   ├── content.json
+│   │   └── compliance.json
 │   ├── package.json
-│   └── tsconfig.json
-├── frontend/             # React + Vite SPA (TypeScript)
+│   ├── tsconfig.json
+│   └── .env.example
+├── frontend/
 │   ├── src/
-│   ├── index.html
-│   ├── vite.config.ts
+│   │   ├── main.tsx
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   ├── lib/
+│   │   ├── hooks/
+│   │   ├── components/
+│   │   └── pages/
 │   ├── package.json
-│   └── tsconfig.json
-└── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── index.html
+├── package.json
+└── README.md
 ```
 
-## Tech Stack
+## Environment Variables
 
-- **Backend**: Node.js 20+, TypeScript, Express 5, better-sqlite3, OpenAI SDK v4, pino logger
-- **Frontend**: React 19, TypeScript, Vite 5, Tailwind CSS v4, shadcn/ui, wouter router, @tanstack/react-query v5
-- **Database**: SQLite via better-sqlite3
-- **Ports**: Backend 3000, Frontend 5173
+### Backend (.env)
+
+```
+PORT=3000
+NODE_ENV=development
+LOG_LEVEL=info
+JWT_SECRET=change_me_in_production
+DATABASE_URL=./db/app.sqlite
+MOCK_MODE=false
+OPENAI_API_KEY=sk-...
+WORDPRESS_URL=
+WORDPRESS_USER=
+WORDPRESS_APP_PASSWORD=
+MAKE_WEBHOOK_URL=
+NAMECHEAP_API_KEY=
+NAMECHEAP_USERNAME=
+DATAFORSEO_LOGIN=
+DATAFORSEO_PASSWORD=
+```
+
+## Development
+
+```bash
+# Install all dependencies
+npm run install:all
+
+# Start development servers (concurrent)
+npm run dev
+
+# Migrate database
+npm run migrate
+
+# Seed demo data
+npm run seed
+
+# Backend only
+npm run dev:backend
+
+# Frontend only
+npm run dev:frontend
+```
+
+## License
+
+MIT
