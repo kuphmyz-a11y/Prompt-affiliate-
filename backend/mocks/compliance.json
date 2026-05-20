@@ -1,1 +1,23 @@
-{"seo":{"title":"Půjčky Online – Rychlé a Levné | PujckyCS","meta_description":"Porovnaj nejlepší půjčky online v České republice. Chvilky, půjčky v splátkách, bez registru.","og_title":"Porovnaj Půjčky Online 2025","og_description":"Najdi nejlevnější půjčku online. Ověř si RPSN a poplatky.","h1":"Nejlepší Půjčky Online v České republice","keywords":["půjčky online","chvilky","půjčky bez registru","rychlá půjčka"]},"legal":{"gdpr_required":true,"cookie_consent":true,"affiliate_disclosure":true,"privacy_policy_required":true,"country_specific_notes":"EU/CZ: Vyžaduje se zásada ochrany soukromí v souladu s GDPR. Affiliate disclosure na každé stránce."},"affiliate":{"recommended_networks":["Awin","CJ","Impact"],"programs":["Vivus","Ferratum","Wonga","NetCredit"],"content_strategy":"Porovnávače, kalkulačky půjček, poradenské články","monetization_notes":"EPC 20-50 USD, CPA 10-30 USD za lead"}}
+{
+  "seo": {
+    "title": "Pożyczki Online – Szybkie i Tanie | PozyczkiPL",
+    "meta_description": "Porównaj najlepsze pożyczki online w Polsce. Chwilówki, pożyczki ratalne, bez BIK.",
+    "og_title": "Porównaj Pożyczki Online 2025",
+    "og_description": "Znajdź najtańszą pożyczkę online. Sprawdź RRSO i prowizje.",
+    "h1": "Najlepsze Pożyczki Online w Polsce",
+    "keywords": ["pożyczki online", "chwilówki", "pożyczki bez BIK", "szybka pożyczka"]
+  },
+  "legal": {
+    "gdpr_required": true,
+    "cookie_consent": true,
+    "affiliate_disclosure": true,
+    "privacy_policy_required": true,
+    "country_specific_notes": "EU/PL: Wymagana polityka prywatności zgodna z RODO. Disclosure afiliacyjny na każdej stronie."
+  },
+  "affiliate": {
+    "recommended_networks": ["Awin", "CJ", "Impact"],
+    "programs": ["Vivus", "Ferratum", "Wonga", "NetCredit"],
+    "content_strategy": "Porównania, kalkulatory pożyczek, artykuły poradnikowe",
+    "monetization_notes": "EPC 20-50 USD, CPA 10-30 USD za lead"
+  }
+}

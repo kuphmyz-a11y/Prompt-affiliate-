@@ -1,6 +1,6 @@
 import pino from 'pino';
 
-const level = (process.env.LOG_LEVEL || 'info') as any;
+const level = process.env.LOG_LEVEL || 'info';
 
 const logger = pino({
   level,
@@ -8,8 +8,6 @@ const logger = pino({
     target: 'pino-pretty',
     options: {
       colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
     },
   },
 });

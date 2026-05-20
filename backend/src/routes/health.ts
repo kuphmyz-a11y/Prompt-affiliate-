@@ -1,12 +1,11 @@
-import express, { Request, Response } from 'express';
-import logger from '../lib/logger.js';
+import { Router, Request, Response } from 'express';
 
-const router = express.Router();
+const router = Router();
 
 router.get('/healthz', (req: Request, res: Response) => {
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  const hasWordPress = !!process.env.WORDPRESS_URL && !!process.env.WORDPRESS_USER && !!process.env.WORDPRESS_APP_PASSWORD;
-  const hasNamecheap = !!process.env.NAMECHEAP_API_KEY && !!process.env.NAMECHEAP_USERNAME;
+  const hasWordPress = !!process.env.WORDPRESS_URL;
+  const hasNamecheap = !!process.env.NAMECHEAP_API_KEY;
   const hasMake = !!process.env.MAKE_WEBHOOK_URL;
 
   res.json({
