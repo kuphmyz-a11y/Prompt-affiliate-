@@ -8,19 +8,29 @@ const dbPath = path.join(__dirname, 'app.sqlite');
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
-export function query(sql: string, params?: any[]): any[] {
-  const stmt = db.prepare(sql);
-  return stmt.all(params || []);
+interface QueryOptions {
+  params?: unknown[];
+  all?: boolean;
 }
 
-export function get(sql: string, params?: any[]): any {
+export function query<T = any>(sql: string, params?: unknown[]): T[] {
   const stmt = db.prepare(sql);
-  return stmt.get(params || []);
+  return stmt.all(...(params || [])) as T[];
 }
 
-export function run(sql: string, params?: any[]): any {
+export function get<T = any>(sql: string, params?: unknown[]): T | undefined {
   const stmt = db.prepare(sql);
-  return stmt.run(params || []);
+  return stmt.get(...(params || [])) as T | undefined;
+}
+
+export function run(sql: string, params?: unknown[]): { lastID?: number; changes: number } {
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...(params || []));
+  return { lastID: result.lastInsertRowid as number, changes: result.changes };
+}
+
+export function exec(sql: string): void {
+  db.exec(sql);
 }
 
 export default db;
