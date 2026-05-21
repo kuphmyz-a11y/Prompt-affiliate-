@@ -3,34 +3,34 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = process.env.DATABASE_URL || path.join(__dirname, 'app.sqlite');
+const dbPath = path.join(__dirname, 'app.sqlite');
 
 const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
-export interface DBRow {
-  [key: string]: unknown;
+interface QueryOptions {
+  params?: unknown[];
+  all?: boolean;
 }
 
-export function query(sql: string, params?: unknown[]): DBRow[] {
+export function query<T = any>(sql: string, params?: unknown[]): T[] {
   const stmt = db.prepare(sql);
-  return stmt.all(...(params || [])) as DBRow[];
+  return stmt.all(...(params || [])) as T[];
 }
 
-export function run(sql: string, params?: unknown[]): { changes: number; lastInsertRowid: number } {
+export function get<T = any>(sql: string, params?: unknown[]): T | undefined {
+  const stmt = db.prepare(sql);
+  return stmt.get(...(params || [])) as T | undefined;
+}
+
+export function run(sql: string, params?: unknown[]): { lastID?: number; changes: number } {
   const stmt = db.prepare(sql);
   const result = stmt.run(...(params || []));
-  return { changes: result.changes, lastInsertRowid: result.lastInsertRowid as number };
+  return { lastID: result.lastInsertRowid as number, changes: result.changes };
 }
 
-export function get(sql: string, params?: unknown[]): DBRow | undefined {
-  const stmt = db.prepare(sql);
-  return stmt.get(...(params || [])) as DBRow | undefined;
-}
-
-export function transaction<T>(fn: () => T): T {
-  const trans = db.transaction(fn);
-  return trans();
+export function exec(sql: string): void {
+  db.exec(sql);
 }
 
 export default db;
